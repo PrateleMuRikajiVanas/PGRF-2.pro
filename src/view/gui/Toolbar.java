@@ -15,6 +15,7 @@ public final class Toolbar extends JPanel {
 
     private final Button clearButton;
     private final Button seedFillButton;
+    private final Button clipButton;
 
     private static final Color DIVIDER = new Color(0x3A3E43);
     private static final Color BACKGROUND = new Color(0x25282C);
@@ -30,8 +31,11 @@ public final class Toolbar extends JPanel {
 
         JPanel fillControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         seedFillButton = new Button("Seed fill", false);
+        clipButton = new Button("Ořez", false);
+
         fillControls.setOpaque(false);
         fillControls.add(seedFillButton);
+        fillControls.add(clipButton);
         add(fillControls, BorderLayout.WEST);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
@@ -52,12 +56,20 @@ public final class Toolbar extends JPanel {
         seedFillButton.setText(active ? "Vyberte bod" : "Seed fill");
     }
 
+    public void setClipMode(boolean active) {
+        clipButton.setText(active ? "Nakreslete ořez" : "Ořez");
+    }
+
     public void addClearListener(ActionListener listener) {
         clearButton.addActionListener(listener);
     }
 
     public void addSeedFillListener(ActionListener listener) {
         seedFillButton.addActionListener(listener);
+    }
+
+    public void addClipListener(ActionListener listener) {
+        clipButton.addActionListener(listener);
     }
 
 }
