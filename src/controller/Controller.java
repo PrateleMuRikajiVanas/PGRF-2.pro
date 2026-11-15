@@ -18,6 +18,7 @@ import view.gui.Toolbar;
 
 import java.awt.Color;
 import java.awt.event.*;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.AbstractAction;
@@ -34,7 +35,7 @@ public class Controller {
     private Line previewLine;
 
     private final Polygon userPolygon = new Polygon();
-    private final Polygon clippingPolygon;
+    private Polygon clippingPolygon;
 
     private final PolygonClipper clipper;
     private final PolygonRasterizer polygonRasterizer;
@@ -57,14 +58,15 @@ public class Controller {
     private static final int CLIPPING_POLYGON_COLOR = new Color(0xE6B85C).getRGB();
     private static final int FILL_COLOR = new Color(0x58BFA9).getRGB();
 
+    private int draggedVertexIndex = -1;
     // 5vrcholová ořezová šablona
-    private static final List<Point> CLIPPING_POLYGON_VERTICES = List.of(
+    private static final List<Point> clippingVertices = new ArrayList<>(List.of(
             new Point(200, 120),
             new Point(450, 150),
             new Point(520, 350),
             new Point(350, 480),
             new Point(180, 400)
-    );
+    ));
 
     public Controller(Canvas canvas, Toolbar toolbar) {
         this.canvas = canvas;
@@ -76,7 +78,7 @@ public class Controller {
         this.seedFiller = new RecursiveSeedFiller(canvas.getRaster());
         this.polygonRasterizer = new PolygonOutlineRasterizer(this.lineRasterizer);
 
-        this.clippingPolygon = createPolygon(CLIPPING_POLYGON_VERTICES, CLIPPING_POLYGON_COLOR);
+        this.clippingPolygon = createPolygon(clippingVertices, CLIPPING_POLYGON_COLOR);
     }
 
     public void init() {
@@ -96,6 +98,19 @@ public class Controller {
             @Override
             public void mousePressed(MouseEvent event) {
                 if (event.getButton() == MouseEvent.BUTTON1) {
+                    draggedVertexIndex = -1;
+                    Point clickPoint = getPoint(event);
+                    for (int i = 0; i < clippingVertices.size(); i++) {
+                        Point vertex = clippingVertices.get(i);
+                        if (Math.hypot(vertex.getX() - clickPoint.getX(), vertex.getY() - clickPoint.getY()) < 10) {
+                            draggedVertexIndex = i;
+                            break;
+                        }
+                    }
+                    if (draggedVertexIndex != -1) {
+                        return; // Budeme posouvat vrchol šablony, dál nic neřešíme
+                    }
+
                     if (clipMode) {
                         clipStartPoint = getPoint(event);
                     } else if (seedFillMode) {
@@ -109,6 +124,11 @@ public class Controller {
             @Override
             public void mouseReleased(MouseEvent event) {
                 if (event.getButton() != MouseEvent.BUTTON1) {
+                    return;
+                }
+                //edit
+                if (draggedVertexIndex != -1) {
+                    draggedVertexIndex = -1;
                     return;
                 }
 
@@ -169,6 +189,15 @@ public class Controller {
         canvas.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent event) {
+                //edit
+                if (draggedVertexIndex != -1) {
+                    Point current = getPoint(event);
+                    clippingVertices.set(draggedVertexIndex, current);
+                    clippingPolygon = createPolygon(clippingVertices, CLIPPING_POLYGON_COLOR);
+                    render();
+                    return;
+                }
+
                 if (clipMode && clipStartPoint != null) {
                     Point current = getPoint(event);
                     previewClipRect = new Line(clipStartPoint, current, CLIP_RECT_COLOR);
