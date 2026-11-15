@@ -23,7 +23,6 @@ public class TrivialLineRasterizer implements LineRasterizer {
     }
 
     private void rasterize(int x1, int y1, int x2, int y2, int color) {
-        // TODO: Dokončit implementaci
         int dx = Math.abs(x2 - x1);
         int dy = Math.abs(y2 - y1);
 
@@ -57,21 +56,6 @@ public class TrivialLineRasterizer implements LineRasterizer {
                 float x = k * y + q;
                 raster.setPixel(Math.round(x), y, color);
             }
-//        float k = (y2 - y1) / (float) (x2 - x1);
-//        float q = y1 - k * x1;
-//
-            // TODO: X2 = X1- vertikální čára
-
-            // TODO: X2 < X1 je nunté prohodit X2 a X1
-
-            // TODO: Pokud je (y2 - y1) > (x2- x1) - jdeme po y
-
-
-//        for (int x = x1; x <= x2; x++) {
-//            float y = k * x + q;
-//            raster.setPixel(x, Math.round(y), color);
-//        }
-
         }
     }
 }

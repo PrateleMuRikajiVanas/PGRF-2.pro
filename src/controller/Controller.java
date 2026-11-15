@@ -3,6 +3,7 @@ package controller;
 import graphics.clipping.CohenSutherlandClipper;
 import graphics.filler.ScanlineFiller;
 import graphics.filler.RecursiveSeedFiller;
+import graphics.filler.ScanlinePatternFiller;
 import graphics.filler.SeedFiller;
 import graphics.clipping.PolygonClipper;
 import graphics.clipping.SutherlandHodgmanClipper;
@@ -45,6 +46,8 @@ public class Controller {
     private boolean seedFillMode;
     private final SeedFiller seedFiller;
     private final ScanlineFiller scanlineFiller;
+    private final ScanlinePatternFiller patternFiller;
+    private boolean usePatternFill = false; //True = pattern
 
     private boolean clipMode;
     private Point clipStartPoint;
@@ -77,7 +80,7 @@ public class Controller {
         this.scanlineFiller = new ScanlineFiller(canvas.getRaster());
         this.seedFiller = new RecursiveSeedFiller(canvas.getRaster());
         this.polygonRasterizer = new PolygonOutlineRasterizer(this.lineRasterizer);
-
+        this.patternFiller = new ScanlinePatternFiller(canvas.getRaster());
         this.clippingPolygon = createPolygon(clippingVertices, CLIPPING_POLYGON_COLOR);
     }
 
@@ -85,7 +88,7 @@ public class Controller {
         toolbar.addClearListener(_ -> clearDrawing());
         toolbar.addSeedFillListener(_ -> toggleSeedFillMode());
         toolbar.addClipListener(_ -> toggleClipMode());
-
+        // C
         canvas.getInputMap(WHEN_IN_FOCUSED_WINDOW).put(getKeyStroke(VK_C, 0), "clearCanvas");
         canvas.getActionMap().put("clearCanvas", new AbstractAction() {
             @Override
@@ -93,11 +96,21 @@ public class Controller {
                 clearDrawing();
             }
         });
+        //pattern
+        canvas.getInputMap(WHEN_IN_FOCUSED_WINDOW).put(getKeyStroke(KeyEvent.VK_P, 0), "togglePattern");
+        canvas.getActionMap().put("togglePattern", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                usePatternFill = !usePatternFill;
+                render();
+            }
+        });
 
         canvas.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent event) {
                 if (event.getButton() == MouseEvent.BUTTON1) {
+                    //edit
                     draggedVertexIndex = -1;
                     Point clickPoint = getPoint(event);
                     for (int i = 0; i < clippingVertices.size(); i++) {
@@ -108,7 +121,7 @@ public class Controller {
                         }
                     }
                     if (draggedVertexIndex != -1) {
-                        return; // Budeme posouvat vrchol šablony, dál nic neřešíme
+                        return; //posun vrcholu sablony
                     }
 
                     if (clipMode) {
@@ -152,8 +165,6 @@ public class Controller {
                         if (clipped != null) {
                             userPolygon.addLine(new Line(clipped.getPoint1(), clipped.getPoint2(), LINE_COLOR));
                         }
-                    } else {
-                        //prazdny else jinak se rozsviti render na 148
                     }
 
                     clipStartPoint = null;
@@ -223,17 +234,7 @@ public class Controller {
         render();
     }
 
-    private Point snapToAxisOrDiagonal(Point start, Point current) {
-        int dx = current.getX() - start.getX();
-        int dy = current.getY() - start.getY();
-        double length = Math.hypot(dx, dy);
-        double step = Math.PI / 4;
-        double angle = Math.round(Math.atan2(dy, dx) / step) * step;
 
-        int snappedDx = (int) Math.round(length * Math.cos(angle));
-        int snappedDy = (int) Math.round(length * Math.sin(angle));
-        return new Point(start.getX() + snappedDx, start.getY() + snappedDy);
-    }
 
     private void render() {
         canvas.clear();
@@ -247,7 +248,13 @@ public class Controller {
             clippedPolygon = null;
         }
         if (clippedPolygon != null) {
-            scanlineFiller.fill(clippedPolygon, FILL_COLOR);
+            if (usePatternFill) {
+                //pattern
+                patternFiller.fill(clippedPolygon, FILL_COLOR, Color.DARK_GRAY.getRGB());
+            } else {
+                // plna barva
+                scanlineFiller.fill(clippedPolygon, FILL_COLOR);
+            }
             polygonRasterizer.rasterize(withColor(clippedPolygon, CLIPPED_POLYGON_COLOR), null);
         }
 
@@ -265,6 +272,20 @@ public class Controller {
             seedFiller.fill(seedFillPoint.getX(), seedFillPoint.getY(), canvas.getBackgroundColor(), FILL_COLOR);
         }
         canvas.repaint();
+    }
+
+
+
+    private Point snapToAxisOrDiagonal(Point start, Point current) {
+        int dx = current.getX() - start.getX();
+        int dy = current.getY() - start.getY();
+        double length = Math.hypot(dx, dy);
+        double step = Math.PI / 4;
+        double angle = Math.round(Math.atan2(dy, dx) / step) * step;
+
+        int snappedDx = (int) Math.round(length * Math.cos(angle));
+        int snappedDy = (int) Math.round(length * Math.sin(angle));
+        return new Point(start.getX() + snappedDx, start.getY() + snappedDy);
     }
 
     private void drawRectangle(int x1, int y1, int x2, int y2, int color) {
